@@ -1,0 +1,59 @@
+// Reaper Client: a client-side Fabric mod for Minecraft Java 26.1.x.
+// Build the jar with ./gradlew build ; it ends up in build/libs/reaper-client-<version>.jar. See BUILD.md.
+//
+// Minecraft 26.1 is not obfuscated, so there is no `mappings` line and no remapping step: the jar that the `jar` task
+// writes is the finished mod.
+
+plugins {
+	id 'net.fabricmc.fabric-loom' version "${loom_version}"
+}
+
+version = project.mod_version
+group = project.maven_group
+
+base {
+	archivesName = project.archives_base_name
+}
+
+// Loom adds the repositories for Minecraft, its libraries, Fabric Loader and Fabric API by itself. The only dependency
+// the mod has beyond those is the optional Baritone mod, which is reached by reflection at run time and therefore
+// does not appear here.
+dependencies {
+	// The versions are set in gradle.properties.
+	minecraft "com.mojang:minecraft:${project.minecraft_version}"
+	implementation "net.fabricmc:fabric-loader:${project.loader_version}"
+	implementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_api_version}"
+}
+
+processResources {
+	inputs.property "version", project.version
+
+	filesMatching("fabric.mod.json") {
+		expand "version": inputs.properties.version
+	}
+}
+
+tasks.withType(JavaCompile).configureEach {
+	// Minecraft 26.1 runs on Java 25.
+	it.options.release = 25
+	it.options.encoding = "UTF-8"
+}
+
+java {
+	// Also writes reaper-client-<version>-sources.jar next to the jar.
+	withSourcesJar()
+
+	sourceCompatibility = JavaVersion.VERSION_25
+	targetCompatibility = JavaVersion.VERSION_25
+}
+
+jar {
+	inputs.property "archivesName", project.base.archivesName
+
+	// The GPL text travels with the jar.
+	from("LICENSE") {
+		rename { "${it}_${inputs.properties.archivesName}" }
+	}
+}
+
+apply from: 'gradle/core-tests.gradle'
